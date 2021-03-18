@@ -63,7 +63,7 @@ int main(int argc, char *argv[]) {
 
     boardInit();
     read(sock, &buffer[0],BUFFSIZE);
-    //printf("Primer valor del buffer: %s\n", buffer);
+    printf("Primer valor del buffer: %s\n", buffer);
     int turn = buffer[0]-'0';
     if (turn>1){
          printf("\nThe server is full, try later!\n");
@@ -71,7 +71,7 @@ int main(int argc, char *argv[]) {
          exit(0);
     }
     while(1){
-        if(turn){
+        if(turn==1){
             printf("It's your turn\n");
             while(1){
                 printf("Enter row(1-5) and colum(1-5) separated by a space\n");
@@ -81,18 +81,18 @@ int main(int argc, char *argv[]) {
                     buffer[1]=colum+'0';
                     write(sock,buffer, 2);
                     read(sock, &buffer[0],BUFFSIZE);
-                    if(buffer[0]-'0'==0)
+                    if((buffer[0]-'0')==0)
                         break;
                 }
             }
             board[row-1][colum-1]='O';
 	        print();
-            turn=!turn;
+            turn=0;
         }
         else {
             read(sock, &buffer[0],BUFFSIZE);
-            if(buffer[0]-'0'== 0){
-                int value = buffer[1]-'0';
+            if((buffer[0]-'0')== 0){
+                int value = (buffer[1]-'0');
                 read(sock, &buffer[0],BUFFSIZE);
                 board[(buffer[0]-'0')-1][(buffer[1]-'0')-1]='X';
                 if (value== 2){print();printf("Game over! you lost :(\n");}
@@ -103,10 +103,11 @@ int main(int argc, char *argv[]) {
             printf("player 2: %s\n", buffer);
             board[(buffer[0]-'0')-1][(buffer[1]-'0')-1]='X';
             print();
-            turn=!turn;
+            turn=1;
         }
     }
     /* Close socket */
     close(sock);
     exit(0);
 }
+
