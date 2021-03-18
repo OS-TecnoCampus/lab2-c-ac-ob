@@ -22,32 +22,37 @@ const char PLAYER2 = 'O';
 char board[SIZE][SIZE];
 char buffer[BUFFSIZE];
 int nPlayer=0,finish=0;
-int game=0;
 
 void err_sys(char *mess) {perror(mess);exit(1);}
 
 void openSem(){    
     psem1 = (sem_t*)sem_open("/sem1", O_CREAT,0644,0);
     if (psem1 == SEM_FAILED) {
-    err_sys("Open psem1");
+        err_sys("Open psem1");
     }
     psem2 = (sem_t*)sem_open("/sem2", O_CREAT,0644,0);
     if (psem2 == SEM_FAILED) {
-    err_sys("Open psem2");
+        err_sys("Open psem2");
     }
 }
 void clearSem(){
     int sem_value;
     sem_getvalue(psem1, &sem_value);
     while (sem_value > 0) {
-    sem_wait(psem1);
-    sem_value--;
+        sem_wait(psem1);
+        sem_value--;
     }
+    sem_getvalue(psem1, &sem_value);
+    printf("pSem1!!! %d\n",sem_value);
+    
     sem_getvalue(psem2, &sem_value);
     while (sem_value > 0) {
-    sem_wait(psem2);
-    sem_value--;
+        sem_wait(psem2);
+        sem_value--;
     }
+    
+    sem_getvalue(psem2, &sem_value);
+    printf("pSem2!!! %d\n",sem_value);
 }
 void boardInit(){
     /*L'omplim de buit*/
@@ -127,13 +132,13 @@ bool clientCommunication(int *sock,const char PLAYER){
 void *clientThread_1(void *vargp){
     int *sock = (int *)vargp;
     buffer[0]=1+'0';
+    buffer[1]='\0';
     while(1){                                                                                      /* LOOP */ 
         sem_wait(psem1);
-        if(clientCommunication(sock,PLAYER1))break;
+        if(clientCommunication(sock,PLAYER1)) break;
         sem_post(psem2);
     }
     close(*sock);
-    nPlayer--;
     return((void*)NULL);
 }
 void *clientThread_2(void *vargp){
@@ -141,14 +146,22 @@ void *clientThread_2(void *vargp){
     int *sock = (int *)vargp;
     char p[2];
     p[0]=0+'0';
+    p[1]='\0';
     write(*sock,p, 2);
     while(1){                                                                                         /* LOOP */  
         sem_wait(psem2);
-       if(clientCommunication(sock,PLAYER2))break;
+       if(clientCommunication(sock,PLAYER2)) break;
         sem_post(psem1);
     }
     close(*sock);
-    nPlayer--;
+    nPlayer = nPlayer-2;
+    return((void*)NULL);
+}
+void *clientThread_3(void *vargp){
+    int *sock = (int *)vargp;
+    char pa[2]={'3','0'}; 
+    write(*sock,pa,2);
+    close(*sock);
     return((void*)NULL);
 }
 
@@ -156,7 +169,7 @@ int main(int argc, char *argv[]){
     struct sockaddr_in echoserver, echoclient;
     int serversock, clientsock[4];
     int result;
-    pthread_t handleThreadId[2];
+    pthread_t handleThreadId[3];
     /*Check input arguments*/
     if (argc != 2) {
        fprintf(stderr,"Usage: %s <port>\n", argv[0]);
@@ -187,17 +200,17 @@ int main(int argc, char *argv[]){
         if(clientsock < 0){
             err_sys("Error accept");
         }
+        printf("nPlayer!!! %d\n",nPlayer);
         if (nPlayer==0){
             clearSem();
             boardInit();
+            print();
             finish=0;  
             buffer[0]='\0';buffer[1]='\0';
             pthread_create(&handleThreadId[nPlayer], NULL, clientThread_1, (void *)&clientsock[nPlayer]);
             nPlayer++;
         }
-        else if (nPlayer==1){pthread_create(&handleThreadId[nPlayer], NULL, clientThread_2, (void *)&clientsock[nPlayer]);
-            nPlayer++;
-            game++;} 
-        else{char pa[2]={'3','0'}; write(clientsock[nPlayer],pa,2);}   
+        else if (nPlayer==1){pthread_create(&handleThreadId[nPlayer], NULL, clientThread_2, (void *)&clientsock[nPlayer]);nPlayer++;} 
+        else{pthread_create(&handleThreadId[nPlayer], NULL, clientThread_3, (void *)&clientsock[nPlayer]);}   
     }
 }
