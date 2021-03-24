@@ -1,10 +1,18 @@
-PROGRAM_NAME = server client
-PROGRAM_OBJS = server.o client.o
+PROGRAM_SERVER = server1 
+PROGRAM_CLIENT = client1
+PROGRAM_OBJS = server1.o client1.o library.h
+LDFLAGS = -pthread
 
-all: $(PROGRAM_NAME)
+all: $(PROGRAM_SERVER)
+    @echo "Finished"
+    
+all: $(PROGRAM_CLIENT)
     @echo "Finished"
 
-$(PROGRAM_NAME): $(PROGRAM_OBJS)
+$(PROGRAM_SERVER): $(PROGRAM_OBJS)
+    gcc $(LDFLAGS) -o $@ $<
+
+$(PROGRAM_CLIENT): $(PROGRAM_OBJS)
     gcc -o $@ $<
 
 %.o: %.c
